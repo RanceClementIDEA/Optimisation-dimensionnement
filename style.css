@@ -1,0 +1,137 @@
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f4f6f8;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background: #1f3c88;
+  color: white;
+  padding: 20px;
+}
+
+h1 {
+  margin: 0 0 5px 0;
+}
+
+h2 {
+  margin-top: 0;
+}
+
+.card {
+  background: white;
+  margin: 20px;
+  padding: 20px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.inputs label {
+  margin-right: 15px;
+}
+
+input[type="text"],
+input[type="number"] {
+  width: 60px;
+  padding: 4px;
+}
+
+button {
+  margin-top: 10px;
+  padding: 10px 18px;
+  background: #1f7aec;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #155ec2;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+th {
+  background: #f0f0f0;
+}
+
+.result {
+  font-size: 16px;
+  padding: 10px;
+}
+
+.hint {
+  font-size: 13px;
+  color: #555;
+}
+.plan-container {
+  overflow-x: auto;
+}
+#planContainer table {
+  border-collapse: collapse;
+  margin-bottom: 25px;
+  width: max-content;
+}
+#planContainer td {
+  min-width: 80px;
+  padding: 6px;
+  font-size: 12px;
+  text-align: center;
+  vertical-align: middle;
+  white-space: pre-line; /* ✅ permet les retours ligne "3R:8\nHAUT:8" */
+}
+#planContainer th {
+  background-color: #333;
+  color: white;
+  padding: 6px;
+  font-size: 13px;
+}
+#planContainer tr:nth-child(even) {
+  background-color: #f5f5f5;
+}
+#planContainer td:hover {
+  outline: 2px solid #000;
+}
+.mode-container {
+  display: flex;
+  gap: 15px;
+  margin: 15px 0;
+}
+
+.mode-card {
+  border: 1px solid #ccc;
+  padding: 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: 0.2s;
+}
+
+.mode-card input {
+  accent-color: #0078D4;
+}
+
+.mode-card:hover {
+  background: #f5f5f5;
+  border-color: #0078D4;
+}
+
+.mode-card input:checked + div {
+  color: #0078D4;
+}
+
