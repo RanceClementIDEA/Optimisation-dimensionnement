@@ -154,6 +154,7 @@ function lancerOptimisation() {
 
 
   afficherApres();
+  afficherParAlleeMouvements(emplacementsAvant, emplacementsApres);
   afficherComparaison();
   afficherParAllee(emplacementsAvant, emplacementsApres);
   afficherHauteursParAllee(emplacementsApres);
@@ -624,6 +625,7 @@ function afficherAvant() {
       return `${t} : ${n}`;
     }).join("<br>");
 }
+  
 
 function afficherApres() {
 
@@ -633,8 +635,8 @@ function afficherApres() {
   );
 
   const travees = new Set(
-  emplacementsApres.map(e => `${e.allee}_${e.travee}_${e.niveau}`)
-).size;
+    emplacementsApres.map(e => `${e.allee}_${e.travee}_${e.niveau}`)
+  ).size;
 
   const lisses = travees * 2;
   const emplacements = emplacementsApres.length;
@@ -643,28 +645,108 @@ function afficherApres() {
 
   apresResult.innerHTML =
 
-    `<h3>EMPLACEMENTS</h3>` +
-    `<b>Total :</b> ${emplacements}<br>` +
-    `<b>Déplacés :</b> ${analyse.move.emplacements}<br>` +
-    `<b>Ajoutés :</b> ${analyse.add.emplacements}<br><br>` +
+    `<h3>EMPLACEMENTS</h3>
+    <b>Total :</b> ${emplacements}<br>
+    <b>Déplacés :</b> ${analyse.move.emplacements}<br>
+    <b>Ajoutés :</b> ${analyse.add.emplacements}<br><br>
 
-    `<h3>TRAVÉES</h3>` +
-    `<b>Total :</b> ${travees}<br>` +
-    `<b>Déplacées :</b> ${analyse.move.travees}<br>` +
-    `<b>Ajoutées :</b> ${analyse.add.travees}<br><br>` +
+    <h3>TRAVÉES</h3>
+    <b>Total :</b> ${travees}<br>
+    <b>Déplacées :</b> ${analyse.move.travees}<br>
+    <b>Ajoutées :</b> ${analyse.add.travees}<br><br>
 
-    `<h3>LISSES</h3>` +
-    `<b>Total :</b> ${lisses}<br>` +
-    `<b>Déplacées :</b> ${analyse.move.lisses}<br>` +
-    `<b>Ajoutées :</b> ${analyse.add.lisses}<br><br>` +
+    <h3>LISSES</h3>
+    <b>Total :</b> ${lisses}<br>
+    <b>Déplacées :</b> ${analyse.move.lisses}<br>
+    <b>Ajoutées :</b> ${analyse.add.lisses}<br><br>
 
-    `<h3>RÉPARTITION</h3>` +
-    ordre.map(t => {
+    <h3>RÉPARTITION</h3>
+    ${ordre.map(t => {
       const n = implantationApres.repartition[t] || 0;
       return `${t} : ${n} (${((n / implantationApres.total) * 100).toFixed(1)}%)`;
-    }).join("<br>");
-} 
+    }).join("<br>")}
+    `;
+}
+function afficherParAlleeMouvements(avant, apres) {
 
+  const container = document.getElementById("apresResult");
+
+  const mapAvant = {};
+  const mapApres = {};
+  const data = {};
+
+  // index avant
+  avant.forEach(e => {
+    const key = `${e.allee}_${e.travee}_${e.niveau}`;
+    if (!mapAvant[key]) mapAvant[key] = e.type;
+  });
+
+  // index après
+  apres.forEach(e => {
+    const key = `${e.allee}_${e.travee}_${e.niveau}`;
+    if (!mapApres[key]) mapApres[key] = e.type;
+  });
+
+  Object.keys(mapApres).forEach(key => {
+
+    const [allee, tr] = key.split("_");
+    const a = mapAvant[key];
+    const b = mapApres[key];
+
+    if (!data[allee]) {
+      data[allee] = {
+        move: { travees: 0, emplacements: 0 },
+        add: { travees: 0, emplacements: 0 }
+      };
+    }
+
+    const nbPos = positionsParNiveau(tr);
+
+    // ✅ ajout
+    if (!a && b) {
+      data[allee].add.travees++;
+      data[allee].add.emplacements += nbPos;
+    }
+
+    // ✅ modification
+    else if (a && b && a !== b) {
+      data[allee].move.travees++;
+      data[allee].move.emplacements += nbPos;
+    }
+  });
+
+  let html = `
+  <h3>Détail par allée</h3>
+  <table border="1" style="border-collapse:collapse;margin-top:10px;">
+    <tr>
+      <th>Allée</th>
+      <th>Travées déplacées</th>
+      <th>Travées ajoutées</th>
+      <th>Emplacements déplacés</th>
+      <th>Emplacements ajoutés</th>
+      <th>Lisses déplacées</th>
+      <th>Lisses ajoutées</th>
+    </tr>
+  `;
+
+  Object.entries(data).forEach(([allee, d]) => {
+    html += `
+      <tr>
+        <td>${allee}</td>
+        <td>${d.move.travees}</td>
+        <td>${d.add.travees}</td>
+        <td>${d.move.emplacements}</td>
+        <td>${d.add.emplacements}</td>
+        <td>${d.move.travees * 2}</td>
+        <td>${d.add.travees * 2}</td>
+      </tr>
+    `;
+  });
+
+  html += `</table>`;
+
+  container.innerHTML += html;
+}
 function afficherComparaison() {
   const tbody = compareTable.querySelector("tbody");
   tbody.innerHTML = "";
@@ -1078,6 +1160,7 @@ function mettreAJourDepuisPlan() {
   implantationApres = compter(emplacementsApres);
 
   afficherApres();
+  afficherParAlleeMouvements(emplacementsAvant, emplacementsApres);
   afficherComparaison();
   afficherParAllee(emplacementsAvant, emplacementsApres);
   afficherHauteursParAllee(emplacementsApres);
