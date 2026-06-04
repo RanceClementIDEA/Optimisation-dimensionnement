@@ -152,14 +152,12 @@ function lancerOptimisation() {
 
   implantationApres = compter(emplacementsApres);
 
-  const analyse = analyserLisses(emplacementsAvant, emplacementsApres);
 
   afficherApres();
   afficherComparaison();
-  afficherParAllee(emplacementsApres);
+  afficherParAllee(emplacementsAvant, emplacementsApres);
   afficherHauteursParAllee(emplacementsApres);
   afficherPlanParAlleeDetaille(emplacementsApres);
-  afficherBI(analyse);
 
   console.log("Mouvements de lisses :", calculerMouvementsLisses(emplacementsAvant, emplacementsApres));
 }
@@ -471,65 +469,60 @@ function compter(list) {
   });
   return r;
 }
-function calculerMouvementsLisses(avant, apres) {
+function analyserImplantation(avant, apres) {
 
   const mapAvant = {};
   const mapApres = {};
 
-  // 🔹 index AVANT
+  // index
   avant.forEach(e => {
     const key = `${e.allee}_${e.travee}_${e.niveau}`;
     if (!mapAvant[key]) mapAvant[key] = e.type;
   });
 
-  // 🔹 index APRES
   apres.forEach(e => {
     const key = `${e.allee}_${e.travee}_${e.niveau}`;
     if (!mapApres[key]) mapApres[key] = e.type;
   });
 
-  let mouvements = 0;
+  let moveTravees = 0;
+  let moveEmplacements = 0;
+  let addTravees = 0;
+  let addEmplacements = 0;
 
-  const travees = new Set(
-    [...avant, ...apres].map(e => `${e.allee}_${e.travee}`)
-  );
+  Object.keys(mapApres).forEach(key => {
 
-  travees.forEach(trKey => {
+    const a = mapAvant[key];
+    const b = mapApres[key];
 
-    let niveaux = [];
+    const tr = Number(key.split("_")[1]);
+    const nbPos = positionsParNiveau(tr);
 
-    Object.keys(mapApres).forEach(k => {
-      if (k.startsWith(trKey)) {
-        niveaux.push(k.split("_")[2]);
-      }
-    });
-
-    // ✅ tri correct des niveaux (A → Z → AA)
-    niveaux.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-
-    for (let i = 0; i < niveaux.length - 1; i++) {
-
-      const n1 = niveaux[i];
-      const n2 = niveaux[i + 1];
-
-      const key1 = `${trKey}_${n1}`;
-      const key2 = `${trKey}_${n2}`;
-
-      const avant1 = mapAvant[key1];
-      const avant2 = mapAvant[key2];
-
-      const apres1 = mapApres[key1];
-      const apres2 = mapApres[key2];
-
-      if (avant1 !== apres1 || avant2 !== apres2) {
-        mouvements++;
-      }
-
+    // ✅ ajout
+    if (!a && b) {
+      addTravees++;
+      addEmplacements += nbPos;
     }
 
+    // ✅ modification
+    else if (a && b && a !== b) {
+      moveTravees++;
+      moveEmplacements += nbPos;
+    }
   });
 
-  return mouvements;
+  return {
+    move: {
+      travees: moveTravees,
+      emplacements: moveEmplacements,
+      lisses: moveTravees * 2
+    },
+    add: {
+      travees: addTravees,
+      emplacements: addEmplacements,
+      lisses: addTravees * 2
+    }
+  };
 }
 function analyserLisses(avant, apres) {
 
@@ -621,30 +614,57 @@ function analyserLisses(avant, apres) {
   };
 }
 function afficherAvant() {
+
+  const ordre = ["HAUT", "3R", "2R", "1R", "VIDE"];
+
   avantResult.innerHTML =
     `<b>Total :</b> ${implantationAvant.total}<br>` +
-    Object.entries(implantationAvant.repartition)
-      .map(([t,n]) => `${t} : ${n}`)
-      .join("<br>");
+    ordre.map(t => {
+      const n = implantationAvant.repartition[t] || 0;
+      return `${t} : ${n}`;
+    }).join("<br>");
 }
 
 function afficherApres() {
 
-const mode = "BALANCE";
-
-  const mouvements = calculerMouvementsLisses(
+  const analyse = analyserImplantation(
     emplacementsAvant,
     emplacementsApres
   );
 
+  const travees = new Set(
+  emplacementsApres.map(e => `${e.allee}_${e.travee}_${e.niveau}`)
+).size;
+
+  const lisses = travees * 2;
+  const emplacements = emplacementsApres.length;
+
+  const ordre = ["HAUT", "3R", "2R", "1R", "VIDE"];
+
   apresResult.innerHTML =
-    `<b>Mode :</b> ${mode}<br>` +
-    `<b>Total :</b> ${implantationApres.total}<br>` +
-    `<b>Mouvements de lisses :</b> ${mouvements}<br><br>` +
-    Object.entries(implantationApres.repartition)
-      .map(([t,n]) => `${t} : ${n} (${((n/implantationApres.total)*100).toFixed(1)}%)`)
-      .join("<br>");
-}
+
+    `<h3>EMPLACEMENTS</h3>` +
+    `<b>Total :</b> ${emplacements}<br>` +
+    `<b>Déplacés :</b> ${analyse.move.emplacements}<br>` +
+    `<b>Ajoutés :</b> ${analyse.add.emplacements}<br><br>` +
+
+    `<h3>TRAVÉES</h3>` +
+    `<b>Total :</b> ${travees}<br>` +
+    `<b>Déplacées :</b> ${analyse.move.travees}<br>` +
+    `<b>Ajoutées :</b> ${analyse.add.travees}<br><br>` +
+
+    `<h3>LISSES</h3>` +
+    `<b>Total :</b> ${lisses}<br>` +
+    `<b>Déplacées :</b> ${analyse.move.lisses}<br>` +
+    `<b>Ajoutées :</b> ${analyse.add.lisses}<br><br>` +
+
+    `<h3>RÉPARTITION</h3>` +
+    ordre.map(t => {
+      const n = implantationApres.repartition[t] || 0;
+      return `${t} : ${n} (${((n / implantationApres.total) * 100).toFixed(1)}%)`;
+    }).join("<br>");
+} 
+
 function afficherComparaison() {
   const tbody = compareTable.querySelector("tbody");
   tbody.innerHTML = "";
@@ -662,29 +682,67 @@ function afficherComparaison() {
   });
 }
 
-function afficherParAllee(emps) {
+function afficherParAllee(empsAvant, empsApres) {
+
   const tbody = document.querySelector("#alleeTable tbody");
   tbody.innerHTML = "";
 
-  const data = {};
-  emps.forEach(e => {
-    if (!data[e.allee])
-      data[e.allee] = { "1R":0,"2R":0,"3R":0,"HAUT":0,total:0 };
-    data[e.allee][e.type]++;
-    data[e.allee].total++;
-  });
+  const dataAvant = {};
+  const dataApres = {};
 
-  Object.entries(data).forEach(([allee,v]) => {
+  function build(data, emps) {
+    emps.forEach(e => {
+      if (!data[e.allee]) {
+        data[e.allee] = {
+          travees: new Set(),
+          emplacements: 0
+        };
+      }
+
+      data[e.allee].travees.add(e.travee);
+      data[e.allee].emplacements++;
+    });
+  }
+
+  build(dataAvant, empsAvant);
+  build(dataApres, empsApres);
+
+  const allees = new Set([
+    ...Object.keys(dataAvant),
+    ...Object.keys(dataApres)
+  ]);
+
+  allees.forEach(allee => {
+
+    const avant = dataAvant[allee] || { travees: new Set(), emplacements: 0 };
+    const apres = dataApres[allee] || { travees: new Set(), emplacements: 0 };
+
+    const trAve = avant.travees.size;
+    const trAp = apres.travees.size;
+
+    const lAve = trAve * 2;
+    const lAp = trAp * 2;
+
+    const eAve = avant.emplacements;
+    const eAp = apres.emplacements;
+
     tbody.innerHTML += `
       <tr>
         <td>${allee}</td>
-        <td>${v["1R"]}</td>
-        <td>${v["2R"]}</td>
-        <td>${v["3R"]}</td>
-        <td>${v["HAUT"]}</td>
-        <td>${v.total}</td>
-        <td>${(v.total * 0.96).toFixed(1)}</td>
-      </tr>`;
+
+        <td>${trAve}</td>
+        <td>${trAp}</td>
+        <td>${trAp - trAve}</td>
+
+        <td>${lAve}</td>
+        <td>${lAp}</td>
+        <td>${lAp - lAve}</td>
+
+        <td>${eAve}</td>
+        <td>${eAp}</td>
+        <td>${eAp - eAve}</td>
+      </tr>
+    `;
   });
 }
 function afficherHauteursParAllee(emplacements) {
@@ -797,15 +855,18 @@ data[e.allee][e.travee][e.niveau].push(e.type);
       Object.keys(niv).forEach(n => niveauxSet.add(n));
     });
 
-    const niveaux = Array.from(niveauxSet).sort();
+    const niveaux = Array.from(niveauxSet)
+  .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    const niveauxDisplay = niveaux;
 
     // 🔹 HEADER
     const headerRow = document.createElement("tr");
 
     headerRow.innerHTML =
-      `<th>Travée</th>` +
-      niveaux.map(n => `<th>${n}</th>`).join("") +
-      `<th>1R</th><th>2R</th><th>3R</th><th>HAUT</th><th>Hauteur</th>`;
+  `<th>Travée</th>` +
+  niveauxDisplay.map(n => `<th>${n}</th>`).join("") +
+  `<th>1R</th><th>2R</th><th>3R</th><th>HAUT</th><th>Hauteur</th>`;
 
     thead.appendChild(headerRow);
 
@@ -820,31 +881,36 @@ data[e.allee][e.travee][e.niveau].push(e.type);
         const stats = { "1R":0,"2R":0,"3R":0,"HAUT":0 };
         let hauteur = 0;
 
-        let rowHTML = `<td>${travee}</td>`;
+        let rowHTML = `
+<td class="travee-cell">
+  <div class="travee-header">${travee}</div>
 
-        niveaux.forEach(n => {
+  <div class="travee-actions">
+    <button class="btn minus"
+      onclick="supprimerNiveauTravee('${allee}', ${travee})">−</button>
 
-  const types = niveauxData[n] || [];
+    <button class="btn plus"
+      onclick="ajouterNiveauTravee('${allee}', ${travee})">+</button>
+  </div>
+</td>
+`;
 
-  // ✅ comptage réel des positions
-  let display = "VIDE";
-  let dominantType = null;
+  niveauxDisplay.forEach(n => {
+
+  const types = niveauxData[n] ? niveauxData[n] : [];
+
+  let dominantType = "VIDE";
 
   if (types.length > 0) {
-
     const counts = {};
     types.forEach(t => {
       counts[t] = (counts[t] || 0) + 1;
     });
 
-    // affichage type : 3R:8 HAUT:8
-    display = Object.entries(counts)
-  .map(([t,n]) => `${t}:${n}`)
-  .join("\n");
+    const ordrePriorite = ["HAUT","3R","2R","1R"];
 
-    // ✅ choisir un type dominant (pour stats + couleur)
-    dominantType = Object.keys(counts)
-      .reduce((a,b) => counts[a] > counts[b] ? a : b);
+    dominantType =
+      ordrePriorite.find(t => counts[t]) || "VIDE";
 
     stats[dominantType] += types.length;
     hauteur += HAUTEURS[dominantType];
@@ -855,19 +921,46 @@ data[e.allee][e.travee][e.niveau].push(e.type);
   if (dominantType === "2R") color = "#FFD966";
   if (dominantType === "3R") color = "#F4B183";
   if (dominantType === "HAUT") color = "#9BC2E6";
-  if (dominantType === "ETAGERE") color = "#00B050";
   if (types.length === 0) color = "#EEEEEE";
 
-  rowHTML += `<td style="background:${color}">${display}</td>`;
-});
+  const cellId = `${allee}_${travee}_${n}`;
 
-        rowHTML += `
-          <td>${stats["1R"]}</td>
-          <td>${stats["2R"]}</td>
-          <td>${stats["3R"]}</td>
-          <td>${stats["HAUT"]}</td>
-          <td>${hauteur}</td>
-        `;
+  if (types.length === 0) {
+
+    rowHTML += `<td class="cellule" style="background:#EEEEEE"></td>`;
+
+  } else {
+
+    rowHTML += `
+<td class="cellule" style="background:${color}">
+  <button class="arrow left"
+    onclick="deplacerNiveau('${allee}', ${travee}, '${n}', -1)">‹</button>
+
+  <select id="cell_${cellId}"
+          onchange="changerTypeSelect('${cellId}')">
+    <option value="VIDE"></option>
+    <option value="1R" ${dominantType==="1R"?"selected":""}>1R</option>
+    <option value="2R" ${dominantType==="2R"?"selected":""}>2R</option>
+    <option value="3R" ${dominantType==="3R"?"selected":""}>3R</option>
+    <option value="HAUT" ${dominantType==="HAUT"?"selected":""}>HAUT</option>
+  </select>
+
+  <button class="arrow right"
+    onclick="deplacerNiveau('${allee}', ${travee}, '${n}', 1)">›</button>
+</td>
+`;
+  }
+
+}); // ✅ FIN DU FOREACH
+
+// ✅ ✅ ✅ ICI SEULEMENT
+rowHTML += `
+  <td>${stats["1R"]}</td>
+  <td>${stats["2R"]}</td>
+  <td>${stats["3R"]}</td>
+  <td>${stats["HAUT"]}</td>
+  <td>${hauteur}</td>
+`;
 
         tr.innerHTML = rowHTML;
         tbody.appendChild(tr);
@@ -878,6 +971,7 @@ data[e.allee][e.travee][e.niveau].push(e.type);
     div.appendChild(table);
 
     container.appendChild(div);
+    table.style.tableLayout = "auto";
   });
 }
 function afficherBI(analyse) {
@@ -885,8 +979,11 @@ function afficherBI(analyse) {
   let html = `<h3>Analyse des lisses</h3>`;
 
   html += `
-    <b>Lisses déplacées :</b> ${analyse.totalMove}<br>
-    <b>Lisses ajoutées :</b> ${analyse.totalNew}<br><br>
+    <b>Emplacements déplacés :</b> ${analyse.totalMove}<br>
+<b>Emplacements ajoutés :</b> ${analyse.totalNew}<br><br>
+
+<b>Lisses déplacées :</b> ${analyse.totalMove * 2}<br>
+<b>Lisses ajoutées :</b> ${analyse.totalNew * 2}<br><br>
   `;
 
   html += `
@@ -902,8 +999,14 @@ function afficherBI(analyse) {
     html += `
       <tr>
         <td>${allee}</td>
-        <td>${d.move}</td>
-        <td>${d.added}</td>
+        <td>
+  ${d.move} emplacements<br>
+  ${d.move*2} lisses
+</td>
+<td>
+  ${d.added} emplacements<br>
+  ${d.added*2} lisses
+</td>
       </tr>
     `;
   });
@@ -944,4 +1047,131 @@ function estBlocIncoherent(allee, tr) {
   });
 
   return incoherent;
+}
+function mettreAJourDepuisPlan() {
+
+  emplacementsApres = [];
+
+  const cells = document.querySelectorAll("[id^='cell_']");
+
+  cells.forEach(cell => {
+
+    const [_, allee, travee, niveau] = cell.id.split("_");
+    const type = cell.value;
+
+    if (!type || type === "VIDE") return;
+
+    const posMax = positionsParNiveau(travee);
+
+    for (let p = 1; p <= posMax; p++) {
+      emplacementsApres.push({
+        allee,
+        travee: Number(travee),
+        niveau,
+        position: p,
+        type
+      });
+    }
+
+  });
+
+  implantationApres = compter(emplacementsApres);
+
+  afficherApres();
+  afficherComparaison();
+  afficherParAllee(emplacementsAvant, emplacementsApres);
+  afficherHauteursParAllee(emplacementsApres);
+afficherPlanParAlleeDetaille(emplacementsApres);
+}
+function changerTypeSelect(id) {
+
+  const select = document.getElementById("cell_" + id);
+
+  // sécurité
+  if (!select) {
+    console.warn("Cellule introuvable :", id);
+    return;
+  }
+
+  // récupère le nouveau type choisi
+  const type = select.value;
+
+  // stocke (optionnel mais propre)
+  select.dataset.type = type;
+
+  // ✅ met à jour toute l'implantation
+  mettreAJourDepuisPlan();
+}
+function ajouterNiveauTravee(allee, travee) {
+
+  const niveaux = [...new Set(
+    emplacementsApres
+      .filter(e => e.allee === allee && e.travee == travee)
+      .map(e => e.niveau)
+  )];
+
+  const nouveau = getNiveau(niveaux.length);
+
+  const posMax = positionsParNiveau(travee);
+
+  for (let p = 1; p <= posMax; p++) {
+    emplacementsApres.push({
+      allee,
+      travee,
+      niveau: nouveau,
+      position: p,
+      type: "2R"
+    });
+  }
+
+  afficherPlanParAlleeDetaille(emplacementsApres);
+  mettreAJourDepuisPlan();
+}
+function supprimerNiveauTravee(allee, travee) {
+
+  const niveaux = [...new Set(
+    emplacementsApres
+      .filter(e => e.allee === allee && e.travee == travee)
+      .map(e => e.niveau)
+  )];
+
+  if (!niveaux.length) return;
+
+  const dernier = niveaux.sort((a,b)=>a.localeCompare(b)).pop();
+
+  emplacementsApres = emplacementsApres.filter(e =>
+    !(e.allee === allee && e.travee == travee && e.niveau === dernier)
+  );
+
+  afficherPlanParAlleeDetaille(emplacementsApres);
+  mettreAJourDepuisPlan();
+}
+function deplacerNiveau(allee, travee, niveau, direction) {
+
+  const niveaux = [...new Set(
+    emplacementsApres
+      .filter(e => e.allee === allee && e.travee == travee)
+      .map(e => e.niveau)
+  )].sort((a,b)=>a.localeCompare(b, undefined, { numeric:true }));
+
+  const index = niveaux.indexOf(niveau);
+  const targetIndex = index + direction;
+
+  if (targetIndex < 0 || targetIndex >= niveaux.length) return;
+
+  const niveau2 = niveaux[targetIndex];
+
+  emplacementsApres.forEach(e => {
+    if (e.allee === allee && e.travee == travee) {
+      if (e.niveau === niveau) e.niveau = "__TMP__";
+      else if (e.niveau === niveau2) e.niveau = niveau;
+    }
+  });
+
+  emplacementsApres.forEach(e => {
+    if (e.niveau === "__TMP__") e.niveau = niveau2;
+  });
+
+  afficherPlanParAlleeDetaille(emplacementsApres);
+  mettreAJourDepuisPlan();
 }

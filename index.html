@@ -5,41 +5,79 @@
   <title>Optimisation Implantation Palettier</title>
 
   <link rel="stylesheet" href="style.css">
-
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .card {
+      border: 1px solid #ccc;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+    }
+
+    button {
+      padding: 8px 12px;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+
+    table {
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      padding: 6px;
+      text-align: center;
+    }
+
+    select {
+      width: 70px;
+      border: none;
+      background: transparent;
+      text-align: center;
+      font-weight: bold;
+    }
+  </style>
+
 </head>
 
 <body>
 
 <header>
   <h1>Optimisation d’implantation palettier</h1>
-  <p>Analyse AVANT / APRÈS – optimisation automatique</p>
+  <p>Analyse AVANT / APRÈS – optimisation automatique + édition manuelle</p>
 </header>
 
 <!-- =============================== -->
-<!-- 1. IMPORT -->
+<!-- IMPORT -->
 <!-- =============================== -->
 <section class="card">
   <h2>1. Import des données</h2>
+
   <input type="file" id="fileExcel" accept=".xlsx,.xls">
-  <p class="hint">
+
+  <p>
     Feuille <b>Emplacements</b><br>
     Colonnes : Allée | Travée | Niveau | Position | Type
   </p>
 </section>
 
 <!-- =============================== -->
-<!-- 2. AVANT -->
+<!-- AVANT -->
 <!-- =============================== -->
 <section class="card">
   <h2>2. Situation actuelle</h2>
-  <div id="avantResult" class="result">
-    <i>Aucune donnée</i>
-  </div>
+  <div id="avantResult"><i>Aucune donnée</i></div>
 </section>
 
 <!-- =============================== -->
-<!-- 3. PARAMETRES -->
+<!-- PARAMETRES -->
 <!-- =============================== -->
 <section class="card">
   <h2>3. Paramètres</h2>
@@ -49,6 +87,8 @@
     <input id="hMax" type="number" value="1180">
   </label>
 
+  <br><br>
+
   <label>
     Autoriser > 10 niveaux
     <input type="checkbox" id="allowExtraLevels" checked>
@@ -56,33 +96,32 @@
 
   <h3>Répartition cible (%)</h3>
 
-  <div class="inputs">
-    <label>1R <input id="p1R" type="number" value="20"></label>
-    <label>2R <input id="p2R" type="number" value="50"></label>
-    <label>3R <input id="p3R" type="number" value="15"></label>
-    <label>HAUT <input id="pH" type="number" value="15"></label>
-  </div>
+  <label>1R <input id="p1R" type="number" value="20"></label>
+  <label>2R <input id="p2R" type="number" value="50"></label>
+  <label>3R <input id="p3R" type="number" value="15"></label>
+  <label>HAUT <input id="pH" type="number" value="15"></label>
 
-  <button id="runBtn">Lancer l’optimisation</button>
+  <br><br>
+
+  <button id="runBtn">Lancer optimisation</button>
+
 </section>
 
 <!-- =============================== -->
-<!-- 4. RESULTAT -->
+<!-- RESULTAT -->
 <!-- =============================== -->
 <section class="card">
-  <h2>4. Résultat optimisation</h2>
-  <div id="apresResult" class="result">
-    <i>Non calculé</i>
-  </div>
+  <h2>4. Résultat</h2>
+  <div id="apresResult"></div>
 </section>
 
 <!-- =============================== -->
-<!-- 5. PAR ALLÉE -->
+<!-- PAR ALLEE -->
 <!-- =============================== -->
 <section class="card">
   <h2>Répartition par allée</h2>
 
-  <table id="alleeTable">
+  <table id="alleeTable" border="1">
     <thead>
       <tr>
         <th>Allée</th>
@@ -99,12 +138,12 @@
 </section>
 
 <!-- =============================== -->
-<!-- 6. HAUTEURS -->
+<!-- HAUTEURS -->
 <!-- =============================== -->
 <section class="card">
   <h2>Hauteur par allée</h2>
 
-  <table id="hauteurTable">
+  <table id="hauteurTable" border="1">
     <thead>
       <tr>
         <th>Allée</th>
@@ -118,12 +157,12 @@
 </section>
 
 <!-- =============================== -->
-<!-- 7. COMPARAISON -->
+<!-- COMPARAISON -->
 <!-- =============================== -->
 <section class="card">
-  <h2>Comparaison AVANT / APRÈS</h2>
+  <h2>Comparaison</h2>
 
-  <table id="compareTable">
+  <table id="compareTable" border="1">
     <thead>
       <tr>
         <th>Type</th>
@@ -137,10 +176,11 @@
 </section>
 
 <!-- =============================== -->
-<!-- 8. PLAN -->
+<!-- PLAN -->
 <!-- =============================== -->
 <section class="card">
-  <h2>Plan détaillé</h2>
+  <h2>Plan détaillé (mode manuel = liste déroulante)</h2>
+
   <div id="planContainer"></div>
 </section>
 
