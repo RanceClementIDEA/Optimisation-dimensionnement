@@ -160,7 +160,9 @@ function lancerOptimisation() {
   afficherHauteursParAllee(emplacementsApres);
   afficherPlanParAlleeDetaille(emplacementsApres);
 
-  console.log("Mouvements de lisses :", calculerMouvementsLisses(emplacementsAvant, emplacementsApres));
+  const analyseL = analyserLisses(emplacementsAvant, emplacementsApres);
+console.log("Lisses déplacées :", analyseL.totalMove);
+console.log("Lisses ajoutées :", analyseL.totalNew);
 }
 function buildPileAvant(emps) {
 
@@ -475,7 +477,6 @@ function analyserImplantation(avant, apres) {
   const mapAvant = {};
   const mapApres = {};
 
-  // index
   avant.forEach(e => {
     const key = `${e.allee}_${e.travee}_${e.niveau}`;
     if (!mapAvant[key]) mapAvant[key] = e.type;
@@ -488,8 +489,6 @@ function analyserImplantation(avant, apres) {
 
   let moveTravees = 0;
   let moveEmplacements = 0;
-  let addTravees = 0;
-  let addEmplacements = 0;
 
   Object.keys(mapApres).forEach(key => {
 
@@ -499,17 +498,12 @@ function analyserImplantation(avant, apres) {
     const tr = Number(key.split("_")[1]);
     const nbPos = positionsParNiveau(tr);
 
-    // ✅ ajout
-    if (!a && b) {
-      addTravees++;
-      addEmplacements += nbPos;
-    }
-
-    // ✅ modification
-    else if (a && b && a !== b) {
+    // ✅ MODIF uniquement
+    if (a !== undefined && b !== undefined && a !== b) {
       moveTravees++;
       moveEmplacements += nbPos;
     }
+
   });
 
   return {
@@ -517,13 +511,11 @@ function analyserImplantation(avant, apres) {
       travees: moveTravees,
       emplacements: moveEmplacements,
       lisses: moveTravees * 2
-    },
-    add: {
-      travees: addTravees,
-      emplacements: addEmplacements,
-      lisses: addTravees * 2
     }
   };
+}
+function calculAjoutsReels(avant, apres) {
+  return apres.length - avant.length;
 }
 function analyserLisses(avant, apres) {
 
@@ -641,6 +633,9 @@ function afficherApres() {
   const lisses = travees * 2;
   const emplacements = emplacementsApres.length;
 
+  // ✅ VRAI AJOUT
+  const ajoutReel = calculAjoutsReels(emplacementsAvant, emplacementsApres);
+
   const ordre = ["HAUT", "3R", "2R", "1R", "VIDE"];
 
   apresResult.innerHTML =
@@ -648,17 +643,15 @@ function afficherApres() {
     `<h3>EMPLACEMENTS</h3>
     <b>Total :</b> ${emplacements}<br>
     <b>Déplacés :</b> ${analyse.move.emplacements}<br>
-    <b>Ajoutés :</b> ${analyse.add.emplacements}<br><br>
+    <b>Ajoutés :</b> ${ajoutReel}<br><br>
 
     <h3>TRAVÉES</h3>
     <b>Total :</b> ${travees}<br>
-    <b>Déplacées :</b> ${analyse.move.travees}<br>
-    <b>Ajoutées :</b> ${analyse.add.travees}<br><br>
+    <b>Déplacées :</b> ${analyse.move.travees}<br><br>
 
     <h3>LISSES</h3>
     <b>Total :</b> ${lisses}<br>
-    <b>Déplacées :</b> ${analyse.move.lisses}<br>
-    <b>Ajoutées :</b> ${analyse.add.lisses}<br><br>
+    <b>Déplacées :</b> ${analyse.move.lisses}<br><br>
 
     <h3>RÉPARTITION</h3>
     ${ordre.map(t => {
@@ -667,53 +660,102 @@ function afficherApres() {
     }).join("<br>")}
     `;
 }
+
 function afficherParAlleeMouvements(avant, apres) {
 
   const container = document.getElementById("apresResult");
+
+  const compterParAllee = (list) => {
+    const res = {};
+    list.forEach(e => {
+      res[e.allee] = (res[e.allee] || 0) + 1;
+    });
+    return res;
+  };
+
+  const avantCount = compterParAllee(avant);
+  const apresCount = compterParAllee(apres);
 
   const mapAvant = {};
   const mapApres = {};
   const data = {};
 
-  // index avant
+  // index structure
   avant.forEach(e => {
     const key = `${e.allee}_${e.travee}_${e.niveau}`;
     if (!mapAvant[key]) mapAvant[key] = e.type;
   });
 
-  // index après
   apres.forEach(e => {
     const key = `${e.allee}_${e.travee}_${e.niveau}`;
     if (!mapApres[key]) mapApres[key] = e.type;
   });
 
-  Object.keys(mapApres).forEach(key => {
+ // ✅ STRUCTURE (mouvements)
+Object.keys(mapApres).forEach(key => {
 
-    const [allee, tr] = key.split("_");
-    const a = mapAvant[key];
-    const b = mapApres[key];
+  const [allee, tr] = key.split("_");
+  const a = mapAvant[key];
+  const b = mapApres[key];
 
-    if (!data[allee]) {
-      data[allee] = {
-        move: { travees: 0, emplacements: 0 },
-        add: { travees: 0, emplacements: 0 }
-      };
-    }
+  if (!data[allee]) {
+    data[allee] = {
+      move: { travees: 0, emplacements: 0 },
+      delta: 0
+    };
+  }
 
-    const nbPos = positionsParNiveau(tr);
+  const nbPos = positionsParNiveau(tr);
 
-    // ✅ ajout
-    if (!a && b) {
-      data[allee].add.travees++;
-      data[allee].add.emplacements += nbPos;
-    }
+  // ✅ MODIF STRUCTURE
+  if (a !== undefined && b !== undefined && a !== b) {
+    data[allee].move.travees++;
+    data[allee].move.emplacements += nbPos;
+  }
 
-    // ✅ modification
-    else if (a && b && a !== b) {
-      data[allee].move.travees++;
-      data[allee].move.emplacements += nbPos;
-    }
-  });
+});
+
+// ✅ DELTA EXACT (prise en compte 3 ET 4)
+Object.keys(apresCount).forEach(allee => {
+
+  if (!data[allee]) {
+    data[allee] = {
+      move: { travees: 0, emplacements: 0 },
+      delta: 0
+    };
+  }
+
+  // ✅ compter AVANT par type de travée (3 ou 4)
+  const avantParTaille = { 3: 0, 4: 0 };
+
+  avant
+    .filter(e => e.allee === allee)
+    .forEach(e => {
+      const taille = positionsParNiveau(e.travee);
+      avantParTaille[taille]++;
+    });
+
+  // ✅ compter APRES par type de travée (3 ou 4)
+  const apresParTaille = { 3: 0, 4: 0 };
+
+  apres
+    .filter(e => e.allee === allee)
+    .forEach(e => {
+      const taille = positionsParNiveau(e.travee);
+      apresParTaille[taille]++;
+    });
+
+  // ✅ différence de NIVEAUX (pas d’emplacements)
+  const diff3 = apresParTaille[3] - avantParTaille[3];
+  const diff4 = apresParTaille[4] - avantParTaille[4];
+
+  // ✅ conversion en emplacements réels
+  const valeur = (diff3 * 3) + (diff4 * 4);
+
+  // ✅ stockage final SIGNÉ (+ ou -)
+  data[allee].delta = valeur;
+
+});
 
   let html = `
   <h3>Détail par allée</h3>
@@ -721,32 +763,39 @@ function afficherParAlleeMouvements(avant, apres) {
     <tr>
       <th>Allée</th>
       <th>Travées déplacées</th>
-      <th>Travées ajoutées</th>
       <th>Emplacements déplacés</th>
-      <th>Emplacements ajoutés</th>
+      <th>Variation</th>
       <th>Lisses déplacées</th>
-      <th>Lisses ajoutées</th>
+    </tr>
+`;
+
+Object.entries(data).forEach(([allee, d]) => {
+
+  const color =
+    d.delta > 0 ? "green" :
+    d.delta < 0 ? "red" :
+    "black";
+
+  html += `
+    <tr>
+      <td>${allee}</td>
+      <td>${d.move.travees}</td>
+      <td>${d.move.emplacements}</td>
+
+      <td style="font-weight:bold;color:${color}">
+        ${d.delta > 0 ? "+" + d.delta : d.delta}
+      </td>
+
+      <td>${d.move.travees * 2}</td>
     </tr>
   `;
-
-  Object.entries(data).forEach(([allee, d]) => {
-    html += `
-      <tr>
-        <td>${allee}</td>
-        <td>${d.move.travees}</td>
-        <td>${d.add.travees}</td>
-        <td>${d.move.emplacements}</td>
-        <td>${d.add.emplacements}</td>
-        <td>${d.move.travees * 2}</td>
-        <td>${d.add.travees * 2}</td>
-      </tr>
-    `;
-  });
+});
 
   html += `</table>`;
 
   container.innerHTML += html;
 }
+
 function afficherComparaison() {
   const tbody = compareTable.querySelector("tbody");
   tbody.innerHTML = "";
