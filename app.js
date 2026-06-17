@@ -715,45 +715,65 @@ Object.keys(mapApres).forEach(key => {
 
 });
 
-// ✅ DELTA EXACT (prise en compte 3 ET 4)
+// ✅ DELTA = EMPLACEMENTS (corrigé)
 Object.keys(apresCount).forEach(allee => {
 
   if (!data[allee]) {
     data[allee] = {
       move: { travees: 0, emplacements: 0 },
-      delta: 0
+      delta: 0,
+      niveauxAjoutes: 0,
+      niveauxSupprimes: 0
     };
   }
 
-  // ✅ compter AVANT par type de travée (3 ou 4)
-  const avantParTaille = { 3: 0, 4: 0 };
-
+  // ✅ niveaux uniques AVANT
+  const avantSet = new Set();
   avant
     .filter(e => e.allee === allee)
     .forEach(e => {
-      const taille = positionsParNiveau(e.travee);
-      avantParTaille[taille]++;
+      avantSet.add(`${e.travee}_${e.niveau}`);
     });
 
-  // ✅ compter APRES par type de travée (3 ou 4)
-  const apresParTaille = { 3: 0, 4: 0 };
-
+  // ✅ niveaux uniques APRES
+  const apresSet = new Set();
   apres
     .filter(e => e.allee === allee)
     .forEach(e => {
-      const taille = positionsParNiveau(e.travee);
-      apresParTaille[taille]++;
+      apresSet.add(`${e.travee}_${e.niveau}`);
     });
 
-  // ✅ différence de NIVEAUX (pas d’emplacements)
-  const diff3 = apresParTaille[3] - avantParTaille[3];
-  const diff4 = apresParTaille[4] - avantParTaille[4];
+  let deltaEmp = 0;
+  let ajoutes = 0;
+  let supprimes = 0;
 
-  // ✅ conversion en emplacements réels
-  const valeur = (diff3 * 3) + (diff4 * 4);
+  const allKeys = new Set([...avantSet, ...apresSet]);
 
-  // ✅ stockage final SIGNÉ (+ ou -)
-  data[allee].delta = valeur;
+  allKeys.forEach(key => {
+
+    const [travee] = key.split("_");
+    const taille = positionsParNiveau(travee);
+
+    const inAvant = avantSet.has(key);
+    const inApres = apresSet.has(key);
+
+    // ✅ niveau ajouté
+    if (!inAvant && inApres) {
+      ajoutes++;
+      deltaEmp += taille;
+    }
+
+    // ✅ niveau supprimé
+    if (inAvant && !inApres) {
+      supprimes++;
+      deltaEmp -= taille;
+    }
+
+  });
+
+  data[allee].niveauxAjoutes = ajoutes;
+  data[allee].niveauxSupprimes = supprimes;
+  data[allee].delta = deltaEmp;
 
 });
 
@@ -764,7 +784,9 @@ Object.keys(apresCount).forEach(allee => {
       <th>Allée</th>
       <th>Travées déplacées</th>
       <th>Emplacements déplacés</th>
-      <th>Variation</th>
+      <th>+ Niveaux</th>
+<th>- Niveaux</th>
+<th>Variation emplacements</th>
       <th>Lisses déplacées</th>
     </tr>
 `;
@@ -782,9 +804,12 @@ Object.entries(data).forEach(([allee, d]) => {
       <td>${d.move.travees}</td>
       <td>${d.move.emplacements}</td>
 
-      <td style="font-weight:bold;color:${color}">
-        ${d.delta > 0 ? "+" + d.delta : d.delta}
-      </td>
+      <td style="color:green">${d.niveauxAjoutes}</td>
+<td style="color:red">${d.niveauxSupprimes}</td>
+
+<td style="font-weight:bold;color:${color}">
+  ${d.delta > 0 ? "+" + d.delta : d.delta}
+</td>
 
       <td>${d.move.travees * 2}</td>
     </tr>
